@@ -16,14 +16,15 @@ for j, box in enumerate(BOXES):
         a.plot(df.ep, df.train_reward, label='train')
         a.plot(df.ep, df.val_reward, label='val')
         a.set_title(f'{BOX_TITLES[box]}\nReward' if i == 0 else 'Reward',
-                    fontsize=16 if i == 0 else 10, fontweight='bold' if i == 0 else 'normal')
-        a.set_xlabel('episode')
+                    fontsize=20 if i == 0 else 13, fontweight='bold' if i == 0 else 'normal')
+        a.set_xlabel('episode', fontsize=12)
         a.set_ylim(*YLIM)
         a.grid(alpha=.3)
+        a.tick_params(axis='both', labelsize=11)
         if j == 0:
-            a.set_ylabel(label, fontsize=18, fontweight='bold')
+            a.set_ylabel(label, fontsize=22, fontweight='bold')
         if i == 0 and j == 0:
-            a.legend()
+            a.legend(fontsize=12)
 
 fig.tight_layout()
 fig.savefig('charts/gainbox_reward_grid.png', dpi=150)
