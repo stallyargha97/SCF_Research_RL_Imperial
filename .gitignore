@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.venv/
+venv/
+env/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+~$*
+
+# Local Claude Code guidance (not part of the published project)
+CLAUDE.md
+SKILLS.md
+.claude/

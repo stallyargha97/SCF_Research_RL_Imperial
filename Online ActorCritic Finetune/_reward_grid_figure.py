@@ -1,0 +1,30 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+
+BOXES = ['Narrow', 'Mid', 'Wide']
+BOX_TITLES = {'Narrow': 'Narrow box', 'Mid': 'Mid box', 'Wide': 'Wide box'}
+CONTROLLERS = [('DDPG', '1', 'DDPG-1'), ('TD3', '1', 'TD3-1'), ('DDPG', '2', 'DDPG-2'), ('TD3', '2', 'TD3-2')]
+
+YLIM = (-3.0, 9.0)  # shared across every panel
+
+fig, ax = plt.subplots(4, 3, figsize=(15, 14), sharex=False, sharey=True)
+
+for j, box in enumerate(BOXES):
+    for i, (algo, approach, label) in enumerate(CONTROLLERS):
+        a = ax[i, j]
+        df = pd.read_csv(f'charts/Best_{algo}_{approach}_{box}BoxPolicy_history.csv')
+        a.plot(df.ep, df.train_reward, label='train')
+        a.plot(df.ep, df.val_reward, label='val')
+        a.set_title(f'{BOX_TITLES[box]}\nReward' if i == 0 else 'Reward',
+                    fontsize=16 if i == 0 else 10, fontweight='bold' if i == 0 else 'normal')
+        a.set_xlabel('episode')
+        a.set_ylim(*YLIM)
+        a.grid(alpha=.3)
+        if j == 0:
+            a.set_ylabel(label, fontsize=18, fontweight='bold')
+        if i == 0 and j == 0:
+            a.legend()
+
+fig.tight_layout()
+fig.savefig('charts/gainbox_reward_grid.png', dpi=150)
+print('saved charts/gainbox_reward_grid.png')
