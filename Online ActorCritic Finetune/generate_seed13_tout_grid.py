@@ -104,7 +104,6 @@ for row, (box, ax) in enumerate(zip(['Narrow', 'Mid', 'Wide'], axes)):
     ax.set_title(f'{box} box (seed={SEED})', fontsize=16, fontweight='bold')
     print(f"[{box}] done: n={n} steps")
 
-fig.suptitle(f'Zero-shot generalisation, stream seed {SEED}: T_out tracking', fontsize=16)
 fig.tight_layout()
 
 out_dir = os.path.join(CHART_DIR, 'randstream_multiseed')

@@ -58,13 +58,11 @@ for i, name in enumerate(ORDER, start=1):
            color=COLORS[name], alpha=0.9)
 
 ax.set_xticks(x)
-ax.set_xticklabels(DAYS, fontsize=14)
-ax.set_ylabel("Zero-shot MAE (C)", fontsize=16)
-ax.set_title("Zero-shot MAE per unseen day, 30 seeds (mean +/- std),\n"
-             "all four offline controllers vs. Expert PI", fontsize=17, fontweight="bold")
-ax.tick_params(axis="both", labelsize=13)
+ax.set_xticklabels(DAYS, fontsize=18)
+ax.set_ylabel("Zero-shot MAE (C)", fontsize=19)
+ax.tick_params(axis="both", labelsize=16)
 ax.grid(axis="y", alpha=0.3)
-ax.legend(fontsize=13, ncol=3, loc="upper center", bbox_to_anchor=(0.5, -0.12))
+ax.legend(fontsize=16, ncol=3, loc="upper center", bbox_to_anchor=(0.5, -0.12))
 
 fig.tight_layout()
 

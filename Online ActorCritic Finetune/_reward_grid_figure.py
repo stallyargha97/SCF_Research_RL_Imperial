@@ -15,8 +15,8 @@ for j, box in enumerate(BOXES):
         df = pd.read_csv(f'charts/Best_{algo}_{approach}_{box}BoxPolicy_history.csv')
         a.plot(df.ep, df.train_reward, label='train')
         a.plot(df.ep, df.val_reward, label='val')
-        a.set_title(f'{BOX_TITLES[box]}\nReward' if i == 0 else 'Reward',
-                    fontsize=20 if i == 0 else 13, fontweight='bold' if i == 0 else 'normal')
+        if i == 0:
+            a.set_title(BOX_TITLES[box], fontsize=20, fontweight='bold')
         a.set_xlabel('episode', fontsize=12)
         a.set_ylim(*YLIM)
         a.grid(alpha=.3)
