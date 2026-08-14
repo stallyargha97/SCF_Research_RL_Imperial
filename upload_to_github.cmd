@@ -8,7 +8,9 @@ REM   -> copy its HTTPS URL, e.g. https://github.com/xylinum97/SCF_Research_RL_I
 
 setlocal enabledelayedexpansion
 
-set /p REPOURL="https://github.com/xylinum97/SCF_Research_RL_Imperial.git"
+set "DEFAULTURL=https://github.com/xylinum97/SCF_Research_RL_Imperial.git"
+set /p REPOURL="Paste the new GitHub repo URL [default: !DEFAULTURL!]: "
+if "!REPOURL!"=="" set "REPOURL=!DEFAULTURL!"
 
 git rev-parse --is-inside-work-tree >nul 2>&1
 if errorlevel 1 (
