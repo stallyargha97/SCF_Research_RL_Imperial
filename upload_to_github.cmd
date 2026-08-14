@@ -34,7 +34,7 @@ if not errorlevel 1 (
     echo Nothing staged to commit.
 ) else (
     set /p COMMITMSG="Commit message: "
-    git commit -m "!COMMITMSG!"
+    git commit -m "!COMMITMSG!" --author="Argha Pradipta <stallyargha97@gmail.com>"
 )
 
 git branch -M main
