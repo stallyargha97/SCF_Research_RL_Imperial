@@ -116,12 +116,6 @@ Notebooks find `main_script` and their own `config.py` through a relative path, 
 they just run from inside their folder, no install needed. You'll need Python 3.10+,
 PyTorch (CPU is fine), NumPy, pandas, matplotlib, openpyxl.
 
-## Written report
-
-The full written report (LaTeX) lives in a sibling repo,
-[`Research-Project-Report---Reinforcement-Learning`](https://github.com/xylinum97/Research-Project-Report---Reinforcement-Learning),
-checked out locally as `../Report`.
-
 ## Requirements
 
 ```
