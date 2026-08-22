@@ -21,7 +21,7 @@ For GitHub/
 
 ## How `main_script` + `config.py` fit together
 
-`main_script` has all the actual behaviour — the plant model, `FlowActor`/`GainActor`,
+`main_script` has all the actual behavior — the plant model, `FlowActor`/`GainActor`,
 `SingleCritic`/`TwinCritic`, `DDPG`/`TD3`/`CQL`, the replay buffer, rollouts and metrics.
 Each folder's `config.py` only holds the constants that change between experiments:
 gain box, observation box, state/action dims, hyperparameters, which datasets to use.
@@ -48,7 +48,7 @@ Positional PI with back-calculation anti-windup (`Kw = Ki/Kp`), expert gains
 `Kp=-0.5`, `Ti=300 s`. Setpoints are 80 °C sunny / 65 °C cloudy (picked up
 automatically from the filename). Flow is bounded to `q ∈ [0, 40] L/min`.
 
-Two actor parameterisations show up everywhere in this repo:
+Two actor parameterizations show up everywhere in this repo:
 - **Regular** — the actor just outputs the flow `q` directly (10-D state, includes `q_prev`).
 - **CIRL** — the actor outputs PI gains `[Kp,Ki,Kw]` instead (9-D state). BC keeps `Kw`
   pinned to the expert's `Ki/Kp`; CQL learns `Kw` itself within a wide gain box (after
@@ -68,18 +68,18 @@ notebooks as the source of truth for results, not this file.
 
 ## How the pipeline actually flows, phase by phase
 
-1. **Phase 1 (Behavioural Cloning).** Train both actor variants on every non-empty
+1. **Phase 1 (Behavioral Cloning). **** Train both actor variants on every non-empty
    combination of the five original dataset days, just by imitating the expert PI.
-   Compare closed-loop MAE across all the combos and keep the best-generalising one —
+   Compare closed-loop MAE across all the combos and keep the best-generalizing one —
    that becomes the actor warm start for Phase 2, and later Phase 4.
 2. **Phase 2 (Offline CQL).** Retrain both variants from scratch, this time with CQL-H
    on a replay buffer built from the expert logs plus some injected action noise. CQL's
    conservative penalty keeps the policy close to the data while still letting it
-   optimise against the reward instead of just copying the expert. This phase is also
+   optimize against the reward instead of just copying the expert. This phase is also
    where the twin critics get trained — those become the critic warm start for Phase 4.
 3. **Phase 3 (BC vs CQL comparison).** Take the Phase 1 and Phase 2 policies and run
    them zero-shot (no extra training) on four days they've never seen. This is really
-   just checking which offline approach actually generalises, and which actor/critic
+   just checking which offline approach actually generalizes, and which actor/critic
    combination is worth carrying into Phase 4.
 4. **Phase 4 (online fine-tuning).** Combine the BC actor with the CQL critic into one
    actor-critic pair and fine-tune it online with DDPG and TD3, under two strategies —
@@ -100,7 +100,7 @@ Closed-loop `.xlsx` logs with columns `T_sc, Tin, Ta, I, theta, q` (and sometime
 ## Usage
 
 ```bash
-git clone https://github.com/xylinum97/SCF_Research_RL_Imperial.git
+git clone https://github.com/stallyargha97/SCF_Research_RL_Imperial.git
 cd SCF_Research_RL_Imperial
 pip install -r requirements.txt
 ```
