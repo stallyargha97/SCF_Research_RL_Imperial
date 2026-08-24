@@ -8,14 +8,14 @@ untrained agent must not be permitted to explore unsafely on the real
 outlet-temperature loop during training.
 
 The approach adopted is an offline-to-online pipeline: training an agent directly on
-the plant from initialisation was not a viable option under this constraint. The
+the plant from initialization was not a viable option under this constraint. The
 actor is therefore first trained to imitate the existing anti-windup PI controller
-via behavioural cloning; a separate offline stage then learns a conservative value
+via behavioral cloning; a separate offline stage then learns a conservative value
 function from the same logged data using Conservative Q-Learning (CQL); only once
 both stages are complete does the policy undergo online fine-tuning, using DDPG and
 TD3. Every stage is evaluated on its ability to transfer to four days of field data
-withheld from training throughout — the "Juan" June 2026 dataset — since
-generalisation to unseen operating conditions is the primary criterion of interest.
+withheld from training throughout — the Juan additional June 2026 dataset — since
+generalization to unseen operating conditions is the primary criterion of interest.
 
 All experiments share a single library, [`main_script/`](main_script); each
 experiment folder supplies its own `config.py`.
