@@ -8,13 +8,13 @@ untrained agent must not be permitted to explore unsafely on the real
 outlet-temperature loop during training.
 
 The approach adopted is an offline-to-online pipeline: training an agent directly on
-the plant from initialization was not a viable option under this constraint. The
+the plant from initialisation was not a viable option under this constraint. The
 actor is therefore first trained to imitate the existing anti-windup PI controller
 via behavioral cloning; a separate offline stage then learns a conservative value
 function from the same logged data using Conservative Q-Learning (CQL); only once
 both stages are complete does the policy undergo online fine-tuning, using DDPG and
 TD3. Every stage is evaluated on its ability to transfer to four days of field data
-withheld from training throughout — the Juan additional June 2026 dataset — since
+withheld from training throughout — the New Unseen (16–19 June 2026) Dataset — since
 generalization to unseen operating conditions is the primary criterion of interest.
 
 All experiments share a single library, [`main_script/`](main_script); each
@@ -50,7 +50,7 @@ configure(cfg)          # inject this folder's constants into the shared classes
 Once `configure(cfg)` executes, `Actor()`, `Critic()`, `SolarFieldEnv`, `DDPG`, and
 `CQL` are instantiated from the active configuration. This mechanism allows a single
 implementation to support both the direct-flow parameterization (`ACTOR_KIND='flow'`,
-10-D state) and the gain parameterisation (`ACTOR_KIND='gain'`, 9-D state) without
+10-D state) and the gain parameterization (`ACTOR_KIND='gain'`, 9-D state) without
 code duplication.
 
 ## The control problem
@@ -65,7 +65,7 @@ Two actor parameterizations are used across this repository, reflecting a design
 question addressed empirically rather than assumed in advance. The **Regular** actor
 outputs the flow rate `q` directly, from a 10-D state that includes the previous flow
 `q_prev`. The **CIRL** actor instead outputs the PI gains `[Kp,Ki,Kw]`, from a 9-D
-state. Under behavioural cloning, `Kw` is fixed to the expert's `Ki/Kp` ratio, since
+state. Under behavioral cloning, `Kw` is fixed to the expert's `Ki/Kp` ratio, since
 no learning signal is available to inform it otherwise; under CQL, `Kw` is learned
 once the policy is retrained within a widened gain box (see `CQL Offline Actor/`);
 under online fine-tuning, `Kw` is learned throughout.
@@ -89,7 +89,7 @@ saved as `*_best.pt`. The `evaluate/*.ipynb` notebooks then roll every checkpoin
 closed-loop to produce the per-day metrics reported in this folder's README.
 
 **Phase 2** (`CQL Offline Actor/`): `train/CQL_Regular_Anti_Windup.py` and
-`train/CQL_CIRL_Setpoint_Anti_Windup.py` retrain both variants from initialization
+`train/CQL_CIRL_Setpoint_Anti_Windup.py` retrain both variants from initialisation
 using CQL-H, on a replay buffer constructed from the expert's logged trajectories with
 injected action noise for state-action coverage, again across the same fifteen
 combinations, again keeping a `*_best.pt`. The conservative penalty permits this stage
@@ -101,7 +101,8 @@ Evaluation follows the same pattern as Phase 1, via this folder's own `evaluate/
 **Phase 3** (`BC vs CQL Comparison/`): the `*_best.pt` checkpoints from Phase 1 and
 Phase 2 are copied into this folder's `policies/`, and `Four_Way_Offline_Policy_Comparison.ipynb`
 (together with `BC_vs_CQL_Offline_Policy_Comparison.ipynb` and `BC_vs_CQL_Online_Tuning.ipynb`)
-evaluates them zero-shot, without further training, on the four Juan days. This
+evaluates them zero-shot, without further training, on the New Unseen
+(16–19 June 2026) Dataset. This
 comparison establishes which offline approach generalizes more effectively, and which
 actor/critic combination is carried forward into Phase 4.
 
@@ -114,7 +115,7 @@ purely critic-driven optimization throughout. The curated, final per-box checkpo
 produced by these runs are collected under `main/policies/`, and are what
 `Evaluate_TunedBox_Policies.ipynb` and `Multiseed_RandomStream_DDPG_TD3.ipynb` load
 for the reported results. This phase constitutes the transition from a policy that
-reproduces safe baseline behavior to one capable of online adaptation.
+reproduces safe baseline behaviour to one capable of online adaptation.
 
 All four phases execute identical `main_script` code; only `config.py` and the
 contents of each folder's `policies/` differ between them. Each folder contains its
@@ -126,7 +127,7 @@ this document, should be treated as the authoritative source for reported result
 Closed-loop `.xlsx` logs contain the columns `T_sc, Tin, Ta, I, theta, q` (and, in
 some cases, `T_ref`). The original dataset comprises four sunny days (21–24 October
 2025) and one cloudy day (20 October 2025); the online experiments are subsequently
-evaluated on four additional sunny days (16–19 June 2026, the Juan additional dataset) that
+evaluated on the New Unseen (16–19 June 2026) Dataset — four additional sunny days that
 are withheld from all offline training. Each experiment folder includes the data it
 requires under `data/`.
 
@@ -140,7 +141,7 @@ pip install -r requirements.txt
 
 Training is performed by running the `train/*.py` scripts (BC, CQL) or the online
 training notebooks. Evaluation is performed by executing the `evaluate/*.ipynb`
-notebooks in full. The seed-13 generalisation figure can be regenerated by running
+notebooks in full. The seed-13 generalization figure can be regenerated by running
 `Online ActorCritic Finetune/generate_seed13_tout_grid.py`, which reconstructs the
 T_out-only, three-box grid directly from the checked-in policy checkpoints.
 
