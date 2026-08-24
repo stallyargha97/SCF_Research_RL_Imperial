@@ -1,21 +1,8 @@
 # SCF Research — Actor-Critic Reinforcement Learning for SCF Control System
 
-Solar collector fields are difficult to regulate using a fixed-gain PI loop, since
-transient disturbances such as passing cloud cover are precisely the class of event a
-fixed-gain controller cannot anticipate. This project investigates whether a learned
-control policy can improve upon such a baseline, subject to the constraint that an
-untrained agent must not be permitted to explore unsafely on the real
-outlet-temperature loop during training.
+Regulating solar collector fields with a fixed-gain proportional-integral (PI) loop is challenging, as transient disturbances such as passing cloud cover are not anticipated by fixed-gain controllers. This study examines whether a learned control policy can outperform this baseline, under the constraint that an untrained agent is not allowed to explore unsafely on the real outlet-temperature loop during training.
 
-The approach adopted is an offline-to-online pipeline: training an agent directly on
-the plant from initialisation was not a viable option under this constraint. The
-actor is therefore first trained to imitate the existing anti-windup PI controller
-via behavioral cloning; a separate offline stage then learns a conservative value
-function from the same logged data using Conservative Q-Learning (CQL); only once
-both stages are complete does the policy undergo online fine-tuning, using DDPG and
-TD3. Every stage is evaluated on its ability to transfer to four days of field data
-withheld from training throughout, the New Unseen (16–19 June 2026) Dataset, since
-generalization to unseen operating conditions is the primary criterion of interest.
+The adopted methodology utilizes an offline-to-online pipeline, as training an agent directly on the plant from initialization is not feasible under the specified safety constraint. Initially, the actor is trained to imitate the existing anti-windup PI controller through behavioral cloning. Subsequently, a separate offline stage learns a conservative value function from the same logged data using Conservative Q-Learning (CQL). Only after both stages are completed does the policy undergo online fine-tuning using Deep Deterministic Policy Gradient (DDPG) and Twin Delayed Deep Deterministic Policy Gradient (TD3). Each stage is evaluated based on its ability to transfer to four days of field data withheld from training, referred to as the New Unseen (16–19 June 2026) Dataset, as generalization to previously unseen operating conditions is the primary criterion of interest.
 
 All experiments share a single library, [`main_script/`](main_script); each
 experiment folder supplies its own `config.py`.
