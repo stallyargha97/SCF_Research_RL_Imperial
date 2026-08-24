@@ -133,7 +133,7 @@ requires under `data/`.
 ## Usage
 
 ```bash
-git clone https://github.com/xylinum97/SCF_Research_RL_Imperial.git
+git clone https://github.com/stallyargha97/SCF_Research_RL_Imperial.git
 cd SCF_Research_RL_Imperial
 pip install -r requirements.txt
 ```
