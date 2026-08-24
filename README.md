@@ -14,7 +14,7 @@ via behavioral cloning; a separate offline stage then learns a conservative valu
 function from the same logged data using Conservative Q-Learning (CQL); only once
 both stages are complete does the policy undergo online fine-tuning, using DDPG and
 TD3. Every stage is evaluated on its ability to transfer to four days of field data
-withheld from training throughout — the New Unseen (16–19 June 2026) Dataset — since
+withheld from training throughout, the New Unseen (16–19 June 2026) Dataset, since
 generalization to unseen operating conditions is the primary criterion of interest.
 
 All experiments share a single library, [`main_script/`](main_script); each
@@ -31,7 +31,7 @@ For GitHub/
 
 ## How `main_script` and `config.py` fit together
 
-`main_script` contains the shared implementation — the plant model, `FlowActor`/
+`main_script` contains the shared implementation: the plant model, `FlowActor`/
 `GainActor`, `SingleCritic`/`TwinCritic`, `DDPG`/`TD3`/`CQL`, the replay buffer, and
 the rollout and metric functions. Each folder's `config.py` defines only the
 constants that vary between experiments: gain box, observation box, state and action
@@ -74,7 +74,7 @@ under online fine-tuning, `Kw` is learned throughout.
 
 Each phase corresponds to one folder in this repository, and each folder maintains
 its own local `policies/` directory: checkpoints are produced there by that folder's
-training scripts, and — where a later phase depends on an earlier one — the relevant
+training scripts; where a later phase depends on an earlier one, the relevant
 `*_best.pt` checkpoint is copied into the downstream folder's `policies/` as a
 warm-start input. This keeps every phase independently reproducible from its own
 folder, without requiring cross-folder path resolution at runtime.
@@ -82,7 +82,7 @@ folder, without requiring cross-folder path resolution at runtime.
 **Phase 1** (`Behavioral Cloning Actor/`): running `train/BC_Regular_Anti_Windup.py`
 and `train/BC_CIRL_Setpoint_Anti_Windup.py` trains both actor variants by imitation of
 the expert PI controller, across every non-empty combination of the five original
-dataset days — fifteen combinations per variant, since the subset of days most
+dataset days: fifteen combinations per variant, since the subset of days most
 conducive to generalization was not known a priori. Each combination is saved as its
 own checkpoint; the combination achieving the lowest closed-loop MAE is additionally
 saved as `*_best.pt`. The `evaluate/*.ipynb` notebooks then roll every checkpoint out
@@ -109,9 +109,9 @@ actor/critic combination is carried forward into Phase 4.
 **Phase 4** (`Online ActorCritic Finetune/`): the winning BC actor and CQL critic
 checkpoints are copied into this folder's `policies/` and used as the warm start for
 `DDPG_Approach1_SearchThenCriticExploit.ipynb`, `DDPG_Approach2_CriticDriven.ipynb`,
-`TD3_Approach1_SearchThenCriticExploit.ipynb`, and `TD3_Approach2_CriticDriven.ipynb`
-— the two strategies referenced above, search followed by critic exploitation versus
-purely critic-driven optimization throughout. The curated, final per-box checkpoints
+`TD3_Approach1_SearchThenCriticExploit.ipynb`, and `TD3_Approach2_CriticDriven.ipynb`.
+These are the two strategies referenced above: search followed by critic
+exploitation, and purely critic-driven optimization throughout. The curated, final per-box checkpoints
 produced by these runs are collected under `main/policies/`, and are what
 `Evaluate_TunedBox_Policies.ipynb` and `Multiseed_RandomStream_DDPG_TD3.ipynb` load
 for the reported results. This phase constitutes the transition from a policy that
@@ -127,7 +127,7 @@ this document, should be treated as the authoritative source for reported result
 Closed-loop `.xlsx` logs contain the columns `T_sc, Tin, Ta, I, theta, q` (and, in
 some cases, `T_ref`). The original dataset comprises four sunny days (21–24 October
 2025) and one cloudy day (20 October 2025); the online experiments are subsequently
-evaluated on the New Unseen (16–19 June 2026) Dataset — four additional sunny days that
+evaluated on the New Unseen (16–19 June 2026) Dataset, four additional sunny days that
 are withheld from all offline training. Each experiment folder includes the data it
 requires under `data/`.
 
