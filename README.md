@@ -1,14 +1,24 @@
-# SCF Research — RL for a Solar Collector Field (Imperial)
+# SCF Research — Actor-Critic Reinforcement Learning for SCF Control System
 
-This is my project on reinforcement-learning control of the outlet temperature of a
-solar thermal collector field, benchmarked against an anti-windup PI controller.
-The idea is an offline-to-online pipeline: clone the expert with behavioural cloning,
-learn a conservative value function offline with CQL, then fine-tune online with
-DDPG/TD3 — and check how well each stage actually transfers to new field data
-("Juan's" June-2026 days).
+Solar collector fields are difficult to regulate using a fixed-gain PI loop, since
+transient disturbances such as passing cloud cover are precisely the class of event a
+fixed-gain controller cannot anticipate. This project investigates whether a learned
+control policy can improve upon such a baseline, subject to the constraint that an
+untrained agent must not be permitted to explore unsafely on the real
+outlet-temperature loop during training.
 
-Everything shares one library, [`main_script/`](main_script), and each experiment
-folder just carries its own `config.py`.
+The approach adopted is an offline-to-online pipeline: training an agent directly on
+the plant from initialisation was not a viable option under this constraint. The
+actor is therefore first trained to imitate the existing anti-windup PI controller
+via behavioural cloning; a separate offline stage then learns a conservative value
+function from the same logged data using Conservative Q-Learning (CQL); only once
+both stages are complete does the policy undergo online fine-tuning, using DDPG and
+TD3. Every stage is evaluated on its ability to transfer to four days of field data
+withheld from training throughout — the "Juan" June 2026 dataset — since
+generalisation to unseen operating conditions is the primary criterion of interest.
+
+All experiments share a single library, [`main_script/`](main_script); each
+experiment folder supplies its own `config.py`.
 
 ```
 For GitHub/
@@ -19,14 +29,14 @@ For GitHub/
 └── BC vs CQL Comparison/        BC-vs-CQL quick-refinement comparison
 ```
 
-## How `main_script` + `config.py` fit together
+## How `main_script` and `config.py` fit together
 
-`main_script` has all the actual behavior — the plant model, `FlowActor`/`GainActor`,
-`SingleCritic`/`TwinCritic`, `DDPG`/`TD3`/`CQL`, the replay buffer, rollouts and metrics.
-Each folder's `config.py` only holds the constants that change between experiments:
-gain box, observation box, state/action dims, hyperparameters, which datasets to use.
-
-A notebook or script wires the two together like this:
+`main_script` contains the shared implementation — the plant model, `FlowActor`/
+`GainActor`, `SingleCritic`/`TwinCritic`, `DDPG`/`TD3`/`CQL`, the replay buffer, and
+the rollout and metric functions. Each folder's `config.py` defines only the
+constants that vary between experiments: gain box, observation box, state and action
+dimensions, hyperparameters, and dataset selection. A notebook or script wires the
+two together as follows:
 
 ```python
 import sys, os
@@ -37,87 +47,103 @@ from config import *
 configure(cfg)          # inject this folder's constants into the shared classes
 ```
 
-Once `configure(cfg)` runs, things like `Actor()`, `Critic()`, `SolarFieldEnv`, `DDPG`,
-`CQL` build themselves off the active config. That's how the same code handles both the
-direct-flow variant (`ACTOR_KIND='flow'`, 10-D state) and the gain variant
-(`ACTOR_KIND='gain'`, 9-D state) without duplicating anything.
+Once `configure(cfg)` executes, `Actor()`, `Critic()`, `SolarFieldEnv`, `DDPG`, and
+`CQL` are instantiated from the active configuration. This mechanism allows a single
+implementation to support both the direct-flow parameterisation (`ACTOR_KIND='flow'`,
+10-D state) and the gain parameterisation (`ACTOR_KIND='gain'`, 9-D state) without
+code duplication.
 
 ## The control problem
 
-Positional PI with back-calculation anti-windup (`Kw = Ki/Kp`), expert gains
-`Kp=-0.5`, `Ti=300 s`. Setpoints are 80 °C sunny / 65 °C cloudy (picked up
-automatically from the filename). Flow is bounded to `q ∈ [0, 40] L/min`.
+The expert policy being cloned is a positional PI controller with back-calculation
+anti-windup (`Kw = Ki/Kp`), tuned with `Kp=-0.5`, `Ti=300 s`. The setpoint (80 °C
+under sunny conditions, 65 °C under cloudy conditions) is determined automatically
+from the dataset filename, and the flow rate is constrained to `q ∈ [0, 40] L/min`
+throughout.
 
-Two actor parameterizations show up everywhere in this repo:
-- **Regular** — the actor just outputs the flow `q` directly (10-D state, includes `q_prev`).
-- **CIRL** — the actor outputs PI gains `[Kp,Ki,Kw]` instead (9-D state). BC keeps `Kw`
-  pinned to the expert's `Ki/Kp`; CQL learns `Kw` itself within a wide gain box (after
-  the CQL-CIRL retrain — see `CQL Offline Actor/`); online fine-tuning always learns it.
+Two actor parameterisations are used across this repository, reflecting a design
+question addressed empirically rather than assumed in advance. The **Regular** actor
+outputs the flow rate `q` directly, from a 10-D state that includes the previous flow
+`q_prev`. The **CIRL** actor instead outputs the PI gains `[Kp,Ki,Kw]`, from a 9-D
+state. Under behavioural cloning, `Kw` is fixed to the expert's `Ki/Kp` ratio, since
+no learning signal is available to inform it otherwise; under CQL, `Kw` is learned
+once the policy is retrained within a widened gain box (see `CQL Offline Actor/`);
+under online fine-tuning, `Kw` is learned throughout.
 
-## The four experiments
+## How the pipeline is structured, phase by phase
 
-| Folder | What it does |
-|---|---|
-| **Behavioral Cloning Actor** | Clones the anti-windup expert with supervised learning; trains 15 dataset-combo policies per variant (Regular / CIRL) |
-| **CQL Offline Actor** | Offline CQL-H from an expert-PI + noise replay buffer, again 15 combos per variant |
-| **Online ActorCritic Finetune** | Online DDPG/TD3 on Juan's days, starting from the BC actor + CQL critic; two approaches — gain search then critic-exploit, or purely critic-driven |
-| **BC vs CQL Comparison** | Quick head-to-head: BC-init vs CQL-init, each given a light DDPG refine on Juan's days |
+Each phase corresponds to one folder in this repository, and each folder maintains
+its own local `policies/` directory: checkpoints are produced there by that folder's
+training scripts, and — where a later phase depends on an earlier one — the relevant
+`*_best.pt` checkpoint is copied into the downstream folder's `policies/` as a
+warm-start input. This keeps every phase independently reproducible from its own
+folder, without requiring cross-folder path resolution at runtime.
 
-Each folder has its own README with the full method and per-day numbers. Treat those
-notebooks as the source of truth for results, not this file.
+**Phase 1** (`Behavioral Cloning Actor/`): running `train/BC_Regular_Anti_Windup.py`
+and `train/BC_CIRL_Setpoint_Anti_Windup.py` trains both actor variants by imitation of
+the expert PI controller, across every non-empty combination of the five original
+dataset days — fifteen combinations per variant, since the subset of days most
+conducive to generalisation was not known a priori. Each combination is saved as its
+own checkpoint; the combination achieving the lowest closed-loop MAE is additionally
+saved as `*_best.pt`. The `evaluate/*.ipynb` notebooks then roll every checkpoint out
+closed-loop to produce the per-day metrics reported in this folder's README.
 
-## How the pipeline actually flows, phase by phase
+**Phase 2** (`CQL Offline Actor/`): `train/CQL_Regular_Anti_Windup.py` and
+`train/CQL_CIRL_Setpoint_Anti_Windup.py` retrain both variants from initialisation
+using CQL-H, on a replay buffer constructed from the expert's logged trajectories with
+injected action noise for state-action coverage, again across the same fifteen
+combinations, again keeping a `*_best.pt`. The conservative penalty permits this stage
+to optimise directly against the reward rather than merely imitating the expert, while
+constraining the policy to remain close to the observed data distribution. This phase
+also trains the twin critics later copied forward as the critic warm start for Phase 4.
+Evaluation follows the same pattern as Phase 1, via this folder's own `evaluate/*.ipynb`.
 
-1. **Phase 1 (Behavioral Cloning). **** Train both actor variants on every non-empty
-   combination of the five original dataset days, just by imitating the expert PI.
-   Compare closed-loop MAE across all the combos and keep the best-generalizing one —
-   that becomes the actor warm start for Phase 2, and later Phase 4.
-2. **Phase 2 (Offline CQL).** Retrain both variants from scratch, this time with CQL-H
-   on a replay buffer built from the expert logs plus some injected action noise. CQL's
-   conservative penalty keeps the policy close to the data while still letting it
-   optimize against the reward instead of just copying the expert. This phase is also
-   where the twin critics get trained — those become the critic warm start for Phase 4.
-3. **Phase 3 (BC vs CQL comparison).** Take the Phase 1 and Phase 2 policies and run
-   them zero-shot (no extra training) on four days they've never seen. This is really
-   just checking which offline approach actually generalizes, and which actor/critic
-   combination is worth carrying into Phase 4.
-4. **Phase 4 (online fine-tuning).** Combine the BC actor with the CQL critic into one
-   actor-critic pair and fine-tune it online with DDPG and TD3, under two strategies —
-   search-then-exploit, and pure critic-driven. This is the step that takes the policy
-   from "just imitates a safe controller" to something that can actually adapt online.
+**Phase 3** (`BC vs CQL Comparison/`): the `*_best.pt` checkpoints from Phase 1 and
+Phase 2 are copied into this folder's `policies/`, and `Four_Way_Offline_Policy_Comparison.ipynb`
+(together with `BC_vs_CQL_Offline_Policy_Comparison.ipynb` and `BC_vs_CQL_Online_Tuning.ipynb`)
+evaluates them zero-shot, without further training, on the four Juan days. This
+comparison establishes which offline approach generalises more effectively, and which
+actor/critic combination is carried forward into Phase 4.
 
-All four phases run on the same `main_script` code and only swap out `config.py`, so
-the actor/critic classes, environment, and rollout/metric functions are identical
-end to end — the only thing that changes between phases is the constants.
+**Phase 4** (`Online ActorCritic Finetune/`): the winning BC actor and CQL critic
+checkpoints are copied into this folder's `policies/` and used as the warm start for
+`DDPG_Approach1_SearchThenCriticExploit.ipynb`, `DDPG_Approach2_CriticDriven.ipynb`,
+`TD3_Approach1_SearchThenCriticExploit.ipynb`, and `TD3_Approach2_CriticDriven.ipynb`
+— the two strategies referenced above, search followed by critic exploitation versus
+purely critic-driven optimisation throughout. The curated, final per-box checkpoints
+produced by these runs are collected under `main/policies/`, and are what
+`Evaluate_TunedBox_Policies.ipynb` and `Multiseed_RandomStream_DDPG_TD3.ipynb` load
+for the reported results. This phase constitutes the transition from a policy that
+reproduces safe baseline behaviour to one capable of online adaptation.
+
+All four phases execute identical `main_script` code; only `config.py` and the
+contents of each folder's `policies/` differ between them. Each folder contains its
+own README with the complete methodology and per-day results; those notebooks, not
+this document, should be treated as the authoritative source for reported results.
 
 ## Datasets
 
-Closed-loop `.xlsx` logs with columns `T_sc, Tin, Ta, I, theta, q` (and sometimes
-`T_ref`). The original data is 4 sunny days (Oct 21–24 2025) + 1 cloudy day
-(Oct 20 2025); online experiments are tested against 4 new "Juan" sunny days
-(Jun 16–19 2026). Each folder ships whatever data it needs under `data/`.
+Closed-loop `.xlsx` logs contain the columns `T_sc, Tin, Ta, I, theta, q` (and, in
+some cases, `T_ref`). The original dataset comprises four sunny days (21–24 October
+2025) and one cloudy day (20 October 2025); the online experiments are subsequently
+evaluated on four additional sunny days (16–19 June 2026, the "Juan" dataset) that
+are withheld from all offline training. Each experiment folder includes the data it
+requires under `data/`.
 
 ## Usage
 
 ```bash
-git clone https://github.com/stallyargha97/SCF_Research_RL_Imperial.git
+git clone https://github.com/xylinum97/SCF_Research_RL_Imperial.git
 cd SCF_Research_RL_Imperial
 pip install -r requirements.txt
 ```
 
-- **Train**: run the `train/*.py` scripts (BC, CQL) or the training notebooks (online).
-- **Evaluate**: open the `evaluate/*.ipynb` notebooks and Run All.
-- **Regenerate the seed-13 generalisation figure**: run
-  `Online ActorCritic Finetune/generate_seed13_tout_grid.py`. It rebuilds the T_out-only,
-  3-box grid straight from the checked-in policy checkpoints — no manual image
-  assembly needed.
+Training is performed by running the `train/*.py` scripts (BC, CQL) or the online
+training notebooks. Evaluation is performed by executing the `evaluate/*.ipynb`
+notebooks in full. The seed-13 generalisation figure can be regenerated by running
+`Online ActorCritic Finetune/generate_seed13_tout_grid.py`, which reconstructs the
+T_out-only, three-box grid directly from the checked-in policy checkpoints.
 
-Notebooks find `main_script` and their own `config.py` through a relative path, so
-they just run from inside their folder, no install needed. You'll need Python 3.10+,
-PyTorch (CPU is fine), NumPy, pandas, matplotlib, openpyxl.
-
-## Requirements
-
-```
-pip install -r requirements.txt
-```
+Notebooks resolve `main_script` and their own `config.py` via relative paths and
+therefore require no separate installation, beyond Python 3.10+, PyTorch (CPU
+execution is sufficient), NumPy, pandas, matplotlib, and openpyxl.
